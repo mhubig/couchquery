@@ -1,9 +1,10 @@
 import os
 import sys
 import urllib
+import base64
 import copy
 import types
-from urlparse import urlparse
+import urlparse
 
 import httplib2
 
@@ -73,7 +74,7 @@ class HttpClient(object):
 
 def httplib2MethodWrapper(method):
     def m(self, path, **kwargs):
-        if 'headers' not in kwargs:
+        if not 'headers' in kwargs:
             kwargs['headers'] = JSON_HEADERS
         resp, content = self.request(path, method, **kwargs)
         return Httplib2Response(resp, content)
@@ -82,36 +83,28 @@ def httplib2MethodWrapper(method):
 
 class Httplib2Client(HttpClient):
     def __init__(self, uri, cache=None, http_override=None):
-        self.uri = uri
-        self.parsed = urlparse(uri)
-        if not self.uri.endswith('/'):
-            self.uri = self.uri + '/'
+        if not uri.endswith('/'):
+            uri = uri + '/'
 
-        if http_override is None:
-            if '@' in self.uri:
-                protocol = 'https://' if 'https' in self.uri else 'http://'
-                cleaned_uri = self.uri.replace(protocol, '')
-                user, password = cleaned_uri.split('@')[0].split(':')
-                self.uri = protocol+self.uri.split('@')[1]
-                if cache is None:
-                    cache = '.cache'
-                #path = os.path.dirname(os.path.abspath(__file__))+
-                #"contrib/DigiCertHighAssuranceEVRootCA.pem"
-                self.http = httplib2.Http(
-                    cache,
-                    disable_ssl_certificate_validation=True)
-                self.http.add_credentials(user, password)
-            else:
-                self.http = httplib2.Http(cache)
-        else:
+        self.uri = urlparse.urlparse(uri)
+        self._auth_header = None
+
+        if http_override:
             self.http = http_override
+        else:
+            self.http = httplib2.Http(cache=cache)
+
+        if self.uri.username and self.uri.password:
+            creds = base64.b64encode("{u.username}:{u.password}".format(u=self.uri))
+            self._auth_header = {'Authorization': "Basic {}".format(creds.decode())}
 
     def request(self, path, method, headers, body=None):
-        return self.http.request(self.uri + path,
-                                 method,
-                                 headers=headers,
-                                 body=body,
-                                 redirections=0)
+        uri = "{u.scheme}://{u.hostname}:{u.port}{u.path}{path}".format(u=self.uri, path=path)
+
+        if self._auth_header:
+            headers.update(self._auth_header)
+
+        return self.http.request(uri, method, headers=headers, body=body, redirections=0)
 
     get = httplib2MethodWrapper("GET")
     put = httplib2MethodWrapper("PUT")
