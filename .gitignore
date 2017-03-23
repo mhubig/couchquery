@@ -8,3 +8,5 @@ build/
 couchquery.egg-info/
 dist/
 .cache/
+tags
+.python-version
