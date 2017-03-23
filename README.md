@@ -68,6 +68,12 @@ Please read on the [document](http://nicolaisi.github.io/couchquery/) for furthe
 
 Changes
 =======
+
+0.10.4
+
++ Hotfix: Fixes credential usage
+
+
 0.10.3
 
 + feature: added filters (beta)
@@ -99,6 +105,3 @@ You can do this by either:
 or
 
     nosetests
-
-
-
