@@ -8,7 +8,7 @@ import urlparse
 
 import httplib2
 
-__version__ = '0.10.1'
+__version__ = '0.10.4'
 
 try:
     import jsonlib2 as json
